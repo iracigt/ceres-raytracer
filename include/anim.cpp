@@ -16,7 +16,7 @@
 #include "obj.hpp"
 
 template <typename Scalar>
-void scene(std::string input_file, size_t width, size_t height, int n_frames) {
+void scene(std::string input_file, std::string out_file, size_t width, size_t height, int n_frames) {
     using Vector3 =  bvh::Vector3<Scalar>;
     using Bvh =  bvh::Bvh<Scalar>;
     using Triangle =  bvh::Triangle<Scalar>;
@@ -24,7 +24,7 @@ void scene(std::string input_file, size_t width, size_t height, int n_frames) {
     constexpr Scalar pi = Scalar(3.14159265359);
 
     Camera<Scalar> camera = {
-       Vector3(0.0,  -1.0, 0.0),
+        Vector3(0.0, -1.0, 0.0),
         Vector3(0, 1, 0),
         Vector3(0, 0, 1),
         60
@@ -73,6 +73,7 @@ void scene(std::string input_file, size_t width, size_t height, int n_frames) {
     auto t_cam = Transform<Scalar>().rotate(Vector3(0,0,1), rotation_step_degrees / 180.0f * pi);
     auto t_sun = Transform<Scalar>().rotate(Vector3(0,0,1), rotation_step_degrees / 180.0f * pi);
 
+    long tot_rays = 0;
 
     for (int i = 0; i < n_frames; i++) {
         // Rotate object
@@ -97,9 +98,11 @@ void scene(std::string input_file, size_t width, size_t height, int n_frames) {
 
         // std::cout << "Rendering image (" << width << "x" << height << ")..." << std::endl;
         auto start2 = high_resolution_clock::now();
-        render(camera, sun_position, bvh, triangles.data(), pixels.get(), width, height);
+        auto [rays, hits] = render(camera, sun_position, bvh, triangles.data(), pixels.get(), width, height);
         auto stop2 = high_resolution_clock::now();
         auto duration2 = duration_cast<microseconds>(stop2 - start2);
+        tot_rays += rays;
+        std::cout << "Rays: " << rays << "\tHits: " << hits << std::endl;
         std::cout << "Tracing took " << duration2.count()/1000000.0 << " s" << std::endl;
 
         Magick::Image image(Magick::Geometry(width,height), "green");
@@ -117,7 +120,9 @@ void scene(std::string input_file, size_t width, size_t height, int n_frames) {
         frames.push_back(image);
     }
 
-    Magick::writeImages(frames.begin(), frames.end(), "render.mp4");
+    Magick::writeImages(frames.begin(), frames.end(), out_file);
+
+    std::cout << "Total Rays: " << tot_rays << std::endl;    
 }
 
 int main(int argc, char** argv) {
@@ -126,22 +131,26 @@ int main(int argc, char** argv) {
     (void) argv;
 
     bool use_double = false;
+    std::string out_file = "render.mp4";
 
     size_t width  = 1280;
     size_t height = 720;
     int n_frames = 90;
     const char* input_file   = "../../Bennu_v20_200k.obj";
 
-    if (argc >= 2) {
+    if (argc > 2) {
         if (!strcmp("-d", argv[1])) {
-            use_double = true;
+            use_double = true;   
         }
+        out_file = argv[2];
+    } else if (argc == 2) {
+        out_file = argv[1];
     }
 
     if (use_double) {
-        scene<double>(input_file, width, height, n_frames);
+        scene<double>(input_file, out_file, width, height, n_frames);
     } else {
-        scene<float>(input_file, width, height, n_frames);
+        scene<float>(input_file, out_file, width, height, n_frames);
     }
     
 }

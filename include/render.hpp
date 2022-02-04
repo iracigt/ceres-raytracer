@@ -54,7 +54,7 @@ void lambertian(Vector3 sun_line, Vector3 normal, float &reflected_intensity){
 };
 
 template <typename Scalar>
-void render(const Camera<Scalar>& camera, const bvh::Vector3<Scalar>& sun_position, const bvh::Bvh<Scalar>& bvh,
+std::pair<int, int> render(const Camera<Scalar>& camera, const bvh::Vector3<Scalar>& sun_position, const bvh::Bvh<Scalar>& bvh,
             const bvh::Triangle<Scalar>* triangles, Scalar* pixels,
             size_t width, size_t height)
 {
@@ -97,8 +97,8 @@ void render(const Camera<Scalar>& camera, const bvh::Vector3<Scalar>& sun_positi
                 bvh::Vector3<Scalar> intersect_point = (u*tri.p0 + v*tri.p1() + (1-u-v)*tri.p2());
 
                 //TODO: Figure out how to deal with the self-intersection stuff in a more proper way...
-                Scalar scale = 1.01;
-                intersect_point = intersect_point * scale;
+                Scalar scale = -0.00001;
+                intersect_point = intersect_point + scale*normal;
 
                 bvh::Vector3<Scalar> sun_line = bvh::normalize(sun_position - intersect_point);
                 bvh::Ray<Scalar> ray(intersect_point, sun_line);
@@ -118,6 +118,8 @@ void render(const Camera<Scalar>& camera, const bvh::Vector3<Scalar>& sun_positi
             }
         }
     }
+
+    return std::pair(traversal_steps, intersections);
 }
 
 #endif
