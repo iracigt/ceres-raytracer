@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
 #endif
     // std::cout << "Rendering image (" << width << "x" << height << ")..." << std::endl;
     auto start2 = high_resolution_clock::now();
-    render(camera, sun_position, bvh, triangles.data(), pixels.get(), width, height);
+    render(camera, sun_position, bvh, triangles.data(), nullptr, pixels.get(), width, height);
     auto stop2 = high_resolution_clock::now();
     auto duration2 = duration_cast<microseconds>(stop2 - start2);
     std::cout << duration2.count()/1000000.0 << std::endl;

@@ -5,7 +5,8 @@
 #include <chrono>
 
 #include <bvh/bvh.hpp>
-#include <bvh/binned_sah_builder.hpp>
+#include <bvh/sweep_sah_builder.hpp>
+#include <bvh/node_layout_optimizer.hpp>
 #include <bvh/single_ray_traverser.hpp>
 #include <bvh/primitive_intersectors.hpp>
 #include <bvh/triangle.hpp>
@@ -13,7 +14,7 @@
 #include <Magick++.h> 
 
 #include "render.hpp"
-#include "obj.hpp"
+#include "obj_norms.hpp"
 
 template <typename Scalar>
 void scene(std::string input_file, std::string out_file, size_t width, size_t height, int n_frames) {
@@ -24,17 +25,17 @@ void scene(std::string input_file, std::string out_file, size_t width, size_t he
     constexpr Scalar pi = Scalar(3.14159265359);
 
     Camera<Scalar> camera = {
-        Vector3(0.0, -1.0, 0.0),
-        Vector3(0, 1, 0),
-        Vector3(0, 0, 1),
+        Vector3(-150.0, -20.0, 0.0),
+        Vector3(1, -0.1, 0),
+        Vector3(0, -1, 0),
         60
     };
 
     Scalar rotation_step_degrees = 360.0f/n_frames;
-    Vector3 sun_position = Vector3(100.0, 0, 0.0);
+    Vector3 sun_position = Vector3(-500.0, 300.0, 10.0);
 
     // Load mesh from file
-    auto triangles = obj::load_from_file<Scalar>(input_file);
+    auto [triangles, tri_norms] = obj::load_from_file<Scalar>(input_file);
     if (triangles.size() == 0) {
         std::cerr << "The given scene is empty or cannot be loaded" << std::endl;
         return;
@@ -58,8 +59,11 @@ void scene(std::string input_file, std::string out_file, size_t width, size_t he
     
     auto global_bbox = bvh::compute_bounding_boxes_union(bboxes, triangles.size());
 
-    bvh::BinnedSahBuilder<Bvh, 16> builder(bvh);
+    bvh::SweepSahBuilder<Bvh> builder(bvh);
     builder.build(global_bbox, bboxes, centers, reference_count);
+    bvh::NodeLayoutOptimizer<Bvh> opt(bvh);
+    opt.optimize();
+    // std::cout << global_bbox.max[0] << ", " << global_bbox.max[0] << ", " << global_bbox.max[0] << std::endl;
 
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
@@ -70,8 +74,8 @@ void scene(std::string input_file, std::string out_file, size_t width, size_t he
         << reference_count << " reference(s)" << std::endl;
 
     auto pixels = std::make_unique<Scalar[]>(3 * width * height);
-    auto t_cam = Transform<Scalar>().rotate(Vector3(0,0,1), rotation_step_degrees / 180.0f * pi);
-    auto t_sun = Transform<Scalar>().rotate(Vector3(0,0,1), rotation_step_degrees / 180.0f * pi);
+    auto t_cam = Transform<Scalar>().rotate(Vector3(0,1,0), rotation_step_degrees / 180.0f * pi);
+    auto t_sun = Transform<Scalar>().rotate(Vector3(0,1,0), rotation_step_degrees / 180.0f * pi);
 
     long tot_rays = 0;
 
@@ -98,7 +102,7 @@ void scene(std::string input_file, std::string out_file, size_t width, size_t he
 
         // std::cout << "Rendering image (" << width << "x" << height << ")..." << std::endl;
         auto start2 = high_resolution_clock::now();
-        auto [rays, hits] = render(camera, sun_position, bvh, triangles.data(), pixels.get(), width, height);
+        auto [rays, hits] = render(camera, sun_position, bvh, triangles.data(), tri_norms.data(), pixels.get(), width, height);
         auto stop2 = high_resolution_clock::now();
         auto duration2 = duration_cast<microseconds>(stop2 - start2);
         tot_rays += rays;
@@ -115,7 +119,7 @@ void scene(std::string input_file, std::string out_file, size_t width, size_t he
         }
 
         view.sync();
-        image.write("frame_" + std::to_string(i) + ".png");
+        // image.write("frame_" + std::to_string(i) + ".png");
         image.animationDelay(10);
         frames.push_back(image);
     }
@@ -133,10 +137,10 @@ int main(int argc, char** argv) {
     bool use_double = false;
     std::string out_file = "render.mp4";
 
-    size_t width  = 1280;
-    size_t height = 720;
-    int n_frames = 90;
-    const char* input_file   = "../../Bennu_v20_200k.obj";
+    size_t width  = 1242/2;
+    size_t height = 2688/2;
+    int n_frames = 60;
+    const char* input_file   = "../../waahh_smoothed.obj";
 
     if (argc > 2) {
         if (!strcmp("-d", argv[1])) {
