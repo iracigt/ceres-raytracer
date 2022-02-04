@@ -18,7 +18,7 @@
 // using Triangle =  bvh::Triangle<Scalar>;
 
 template <typename Scalar>
-std::pair<int, int> render(PinholeCamera<Scalar>& camera, const bvh::Vector3<Scalar>& sun_position, const bvh::Bvh<Scalar>& bvh,
+std::pair<int, int> render(CameraModel<Scalar>& camera, const bvh::Vector3<Scalar>& sun_position, const bvh::Bvh<Scalar>& bvh,
             const bvh::Triangle<Scalar>* triangles, Scalar* pixels,
             size_t width, size_t height)
 {

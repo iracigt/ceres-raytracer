@@ -6,11 +6,11 @@
 template <typename Scalar>
 class CameraModel {
     public:
-        virtual void pixel_to_ray();
+        virtual bvh::Ray<Scalar> pixel_to_ray(Scalar u, Scalar v) = 0;
 };
 
 template <typename Scalar>
-class PinholeCamera {
+class PinholeCamera : public CameraModel<Scalar> {
     using Vector3 =  bvh::Vector3<Scalar>;
     public:
         Vector3 position;

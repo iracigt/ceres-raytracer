@@ -16,7 +16,7 @@
 #include "obj.hpp"
 
 template <typename Scalar>
-void scene(PinholeCamera<Scalar> camera, std::string input_file, std::string out_file, size_t width, size_t height) {
+void scene(CameraModel<Scalar> &camera, std::string input_file, std::string out_file, size_t width, size_t height) {
     using Vector3 =  bvh::Vector3<Scalar>;
     using Bvh =  bvh::Bvh<Scalar>;
     using Triangle =  bvh::Triangle<Scalar>;
@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
         using Vector3 = bvh::Vector3<double>;
         Vector3 position = Vector3(0.0, -1.0, 0.0);
         Vector3 euler_angles = Vector3(0.0, 0.0, 0.0);
-        PinholeCamera<double> camera = PinholeCamera(focal_length, resolution, sensor_size, position, euler_angles);
+        PinholeCamera<double> camera(focal_length, resolution, sensor_size, position, euler_angles);
         // auto camera = create_camera<double>(camera_model);
         scene<double>(camera, input_file, out_file, width, height);
     
@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
         using Vector3 = bvh::Vector3<float>;
         Vector3 position = Vector3(0.0, -1.0, 0.0);
         Vector3 euler_angles = Vector3(0.0, 0.0, 0.0);
-        PinholeCamera<float> camera = PinholeCamera(focal_length, resolution, sensor_size, position, euler_angles);
+        PinholeCamera<float> camera(focal_length, resolution, sensor_size, position, euler_angles);
         // auto camera = create_camera<float>(camera_model);
         scene<float>(camera, input_file, out_file, width, height);
     }
