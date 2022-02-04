@@ -42,46 +42,49 @@ void scene(std::string input_file, size_t width, size_t height, int n_frames) {
 
     std::vector<Magick::Image> frames;
 
-    auto t = Transform<Scalar>().rotate(Vector3(0,0,1), 0);
-    for (int r = 0; r < 3; r++) {
-        std::cout << "[" << t.a[r][0] << ", " << t.a[r][1] << ", " << t.a[r][2] << "]" << std::endl;
-    }
+    Bvh bvh;
+
+    size_t reference_count = triangles.size();
+    std::unique_ptr<Triangle[]> shuffled_triangles;
+
+    // Build an acceleration data structure for this object set
+    std::cout << "Building BVH ( using BinnedSahBuilder )..." << std::endl;
+    using namespace std::chrono;
+    auto start = high_resolution_clock::now();
+
+    auto bboxes_and_centers = bvh::compute_bounding_boxes_and_centers(triangles.data(), triangles.size());
+    auto bboxes = bboxes_and_centers.first.get(); 
+    auto centers = bboxes_and_centers.second.get(); 
+    
+    auto global_bbox = bvh::compute_bounding_boxes_union(bboxes, triangles.size());
+
+    bvh::BinnedSahBuilder<Bvh, 16> builder(bvh);
+    builder.build(global_bbox, bboxes, centers, reference_count);
+
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
+    std::cout << "BVH took " << duration.count()/1000000.0 << " s" << std::endl;
+
+    std::cout << "BVH of "
+        << bvh.node_count << " node(s) and "
+        << reference_count << " reference(s)" << std::endl;
+
+    auto pixels = std::make_unique<Scalar[]>(3 * width * height);
+    auto t_cam = Transform<Scalar>().rotate(Vector3(0,0,1), rotation_step_degrees / 180.0f * pi);
+    auto t_sun = Transform<Scalar>().rotate(Vector3(0,0,1), rotation_step_degrees / 180.0f * pi);
 
 
     for (int i = 0; i < n_frames; i++) {
         // Rotate object
-        auto t = Transform<Scalar>().rotate(Vector3(0,0,1), rotation_step_degrees / 180.0f * pi);
-        transform_triangles(t, triangles.data(), triangles.size());
+        // transform_triangles(t, triangles.data(), triangles.size());
 
-        Bvh bvh;
+        // Rotate Camera
+        camera.eye = t_cam(camera.eye);
+        camera.dir = t_cam(camera.dir);
+        sun_position = t_sun(sun_position);
 
-        size_t reference_count = triangles.size();
-        std::unique_ptr<Triangle[]> shuffled_triangles;
 
-        // Build an acceleration data structure for this object set
-        std::cout << "Building BVH ( using BinnedSahBuilder )..." << std::endl;
-        using namespace std::chrono;
-        auto start = high_resolution_clock::now();
 
-        auto bboxes_and_centers = bvh::compute_bounding_boxes_and_centers(triangles.data(), triangles.size());
-        auto bboxes = bboxes_and_centers.first.get(); 
-        auto centers = bboxes_and_centers.second.get(); 
-        
-        auto global_bbox = bvh::compute_bounding_boxes_union(bboxes, triangles.size());
-
-        bvh::BinnedSahBuilder<Bvh, 16> builder(bvh);
-        builder.build(global_bbox, bboxes, centers, reference_count);
-
-        auto stop = high_resolution_clock::now();
-        auto duration = duration_cast<microseconds>(stop - start);
-        std::cout << "BVH took " << duration.count()/1000000.0 << " s" << std::endl;
-
-        std::cout << "BVH of "
-            << bvh.node_count << " node(s) and "
-            << reference_count << " reference(s)" << std::endl;
-
-        auto pixels = std::make_unique<Scalar[]>(3 * width * height);
-        
 #ifdef _OPENMP
         #pragma omp parallel
         {
