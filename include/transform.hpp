@@ -40,9 +40,15 @@ void transform_triangles(std::vector<bvh::Triangle<Scalar>> &triangles, Scalar r
         auto vn1 = rotate(triangles[i].vn1, rotation);
         auto vn2 = rotate(triangles[i].vn2, rotation);
 
+        auto c0 = triangles[i].vc[0];
+        auto c1 = triangles[i].vc[1];
+        auto c2 = triangles[i].vc[2];
+
+
         // Update the triangle:
         triangles[i] = bvh::Triangle<Scalar>(p0, p1, p2);
         triangles[i].add_vetex_normals(vn0, vn1, vn2);
+        triangles[i].add_vertex_colors(c0, c1, c2);
     }
 }
 

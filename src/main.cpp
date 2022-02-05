@@ -19,13 +19,15 @@
 #include "transform.hpp"
 #include "render.hpp"
 #include "obj.hpp"
+#include "ply.hpp"
 #include "lights.hpp"
 #include "scene.hpp"
 
 // Function for loading general settings:
-void load_settings(INIReader reader, bool &use_double, std::string &output) {
+void load_settings(INIReader reader, bool &use_double, std::string &output, int &n_frames) {
     use_double = reader.GetBoolean("settings", "use_double", true);
     output = reader.Get("settings", "output", "render.png");
+    n_frames = reader.GetInteger("settings", "nframes", 1);
 };
 
 
@@ -186,7 +188,10 @@ std::vector<bvh::Triangle<Scalar>> load_objects(INIReader reader) {
         if (!strcmp((*it).substr(0,3).c_str(), "obj")) {
             // Load the triangular mesh:
             std::string path_to_obj = reader.Get((*it), "path", "UNKNOWN");
-            auto triangles_new = obj::load_from_file<Scalar>(path_to_obj);
+
+            bool is_ply = path_to_obj.size() >= 3 && 0 == path_to_obj.compare(path_to_obj.size()-3, 3, "ply");
+
+            auto triangles_new = is_ply ? ply::load_from_file<Scalar>(path_to_obj) : obj::load_from_file<Scalar>(path_to_obj);
             std::cout << "  " << (*it).substr(4) << " loaded from " << path_to_obj << "\n";
 
             // Load the position:
@@ -230,6 +235,28 @@ std::vector<PointLight<Scalar>> load_pointlights(INIReader reader) {
 }
 
 
+template <typename Scalar>
+void animate(CameraModel<Scalar> &camera, std::vector<bvh::Triangle<Scalar>> triangles, std::vector<PointLight<Scalar>> lights,std::string output, int n_frames = 1) {
+    
+    Scalar rot[3][3];
+    Scalar angles[3] = {Scalar(360.0) / n_frames, 0.0, 0.0};
+
+    euler_to_rotation(angles, "321", rot);
+
+    std::vector<Magick::Image> frames;
+
+    std::cout << "Rendering frame " << 1 << " / " << n_frames << std::endl;
+    frames.emplace_back(scene(camera, triangles, lights));
+
+    for (int i_frame = 1; i_frame < n_frames; i_frame++) {
+        std::cout << "Rendering frame " << i_frame + 1 << " / " << n_frames << std::endl;
+        transform_triangles<Scalar>(triangles, rot, bvh::Vector3<Scalar>(0), 1);
+        frames.emplace_back(scene(camera, triangles, lights));
+    }
+    
+    Magick::writeImages(frames.begin(), frames.end(), output);
+}
+
 int main(int argc, char** argv) {
 
     if (argc != 2) {
@@ -245,21 +272,21 @@ int main(int argc, char** argv) {
     
     bool use_double;
     std::string output;
-    load_settings(reader, use_double, output);
+    int n_frames;
+    load_settings(reader, use_double, output, n_frames);
 
     // Build and render the scene as double precision:
     if (use_double) {
         auto camera = load_camera<double>(reader);
         auto triangles = load_objects<double>(reader);
         auto lights = load_pointlights<double>(reader);
-        scene<double>(*camera, triangles, lights, output);
-    
+        animate<double>(*camera, triangles, lights, output, n_frames);
     // Build and render the scene as single precision:
     } else {
         auto camera = load_camera<float>(reader);
         auto triangles = load_objects<float>(reader);
         auto lights = load_pointlights<float>(reader);
-        scene<float>(*camera, triangles, lights, output);
+        animate<float>(*camera, triangles, lights, output, n_frames);
     }
     return 0;
 }

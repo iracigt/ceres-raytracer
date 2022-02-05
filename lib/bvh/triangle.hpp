@@ -25,18 +25,30 @@ struct Triangle {
     using IntersectionType = Intersection;
 
     Vector3<Scalar> p0, e1, e2, n, vn0, vn1, vn2;
+    std::array<float, 3> vc[3];
 
     Triangle() = default;
     Triangle(const Vector3<Scalar>& p0, const Vector3<Scalar>& p1, const Vector3<Scalar>& p2)
         : p0(p0), e1(p0 - p1), e2(p2 - p0)
     {
         n = LeftHandedNormal ? cross(e1, e2) : cross(e2, e1);
+        // All white vertices
+        vc[0][0] = 1.0; vc[0][1] = 1.0; vc[0][2] = 1.0;
+        vc[1][0] = 1.0; vc[1][1] = 1.0; vc[1][2] = 1.0;
+        vc[2][0] = 1.0; vc[2][1] = 1.0; vc[2][2] = 1.0;
     }
 
     void add_vetex_normals(Vector3<Scalar> vn0, Vector3<Scalar> vn1, Vector3<Scalar> vn2) {
         this -> vn0 = vn0;
         this -> vn1 = vn1;
         this -> vn2 = vn2;
+    }
+
+    template <typename C>
+    void add_vertex_colors(std::array<C,3> c0, std::array<C,3> c1, std::array<C,3> c2, float scale = 1.0f) {
+        for (int i = 0; i < 3; i++) { vc[0][i] = scale * c0[i]; }
+        for (int i = 0; i < 3; i++) { vc[1][i] = scale * c1[i]; }
+        for (int i = 0; i < 3; i++) { vc[2][i] = scale * c2[i]; }
     }
 
     Vector3<Scalar> p1() const { return p0 - e1; }

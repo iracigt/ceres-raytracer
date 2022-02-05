@@ -2,7 +2,7 @@
 #define __SCENE_H
 
 template <typename Scalar>
-void scene(CameraModel<Scalar> &camera, std::vector<bvh::Triangle<Scalar>> triangles, std::vector<PointLight<Scalar>> point_lights, std::string out_file) {
+Magick::Image scene(CameraModel<Scalar> &camera, std::vector<bvh::Triangle<Scalar>> triangles, std::vector<PointLight<Scalar>> point_lights) {
     using Bvh =  bvh::Bvh<Scalar>;
     using Triangle =  bvh::Triangle<Scalar>;
 
@@ -63,7 +63,7 @@ void scene(CameraModel<Scalar> &camera, std::vector<bvh::Triangle<Scalar>> trian
     }
 
     view.sync();
-    image.write(out_file);
+    return image;
 }
 
 #endif
