@@ -16,16 +16,35 @@
 #include "cameras.hpp"
 
 template <typename Scalar>
+bvh::Vector3<Scalar> texture(bvh::Vector<float, 2> uv, Magick::Image &tex) {
+    size_t x = (size_t)(uv[0] * tex.size().width() + 0.5);
+    size_t y = (size_t)(uv[1] * tex.size().height() + 0.5);
+    
+    // std::cout << "(" << uv[0] << ", " << uv[1] << ") -> (" << x << ", " << y << ")" << std::endl;
+
+    Magick::Color color = tex.pixelColor(x, y);
+    return bvh::Vector3<Scalar>(
+        Scalar(color.quantumRed()) / Scalar(65535.),
+        Scalar(color.quantumGreen()) / Scalar(65535.),
+        Scalar(color.quantumBlue()) / Scalar(65535.)
+    );
+
+}
+
+template <typename Scalar>
 bvh::Vector3<Scalar> illumination(bvh::SingleRayTraverser<bvh::Bvh<Scalar>> &traverser, 
                                  bvh::ClosestPrimitiveIntersector<bvh::Bvh<Scalar>, bvh::Triangle<Scalar>, false> &intersector, 
-                                 Scalar &u, Scalar &v, bvh::Triangle<Scalar> &tri, bvh::Ray<Scalar> light_ray) {
+                                 Scalar &u, Scalar &v, bvh::Triangle<Scalar> &tri, bvh::Ray<Scalar> light_ray, Magick::Image &tex) {
     bvh::Vector3<Scalar> intensity;
     // Loop through all provided lights:
     auto hit = traverser.traverse(light_ray, intersector);
     if (!hit) {
         //TODO: Add smooth shading as an option per triangle:
         bvh::Vector3<Scalar> interpolated_normal = u*tri.vn1 + v*tri.vn2 + (1-u-v)*tri.vn0;
-        lambertian<Scalar>(light_ray, interpolated_normal, intensity);
+        bvh::Vector<float, 2> interpolated_uv = (float)u*tri.t_uv[1] + (float)v*tri.t_uv[2] + (float)(1-u-v)*tri.t_uv[0];
+        bvh::Vector3<Scalar> color = texture<Scalar>(interpolated_uv, tex);
+
+        lambertian<Scalar>(light_ray, interpolated_normal, intensity, color);
     } else{
         intensity = bvh::Vector3<Scalar>(0.0,0.0,0.0);
     }
@@ -35,7 +54,7 @@ bvh::Vector3<Scalar> illumination(bvh::SingleRayTraverser<bvh::Bvh<Scalar>> &tra
 
 template <typename Scalar>
 void render(int num_samples, int num_bounces, CameraModel<Scalar> &camera, std::vector<PointLight<Scalar>> &point_lights, std::vector<SquareLight<Scalar>> &square_lights,
-            const bvh::Bvh<Scalar>& bvh, const bvh::Triangle<Scalar>* triangles, Scalar* pixels)
+            const bvh::Bvh<Scalar>& bvh, const bvh::Triangle<Scalar>* triangles, Scalar* pixels, Magick::Image &tex)
 {
     bvh::ClosestPrimitiveIntersector<bvh::Bvh<Scalar>, bvh::Triangle<Scalar>, false> intersector(bvh, triangles);
     bvh::SingleRayTraverser<bvh::Bvh<Scalar>> traverser(bvh);
@@ -102,13 +121,13 @@ void render(int num_samples, int num_bounces, CameraModel<Scalar> &camera, std::
                     int count = 1;
                     for (PointLight<Scalar> &light : point_lights){
                         bvh::Ray<Scalar> light_ray = light.sample_ray(intersect_point);
-                        bvh::Vector3<Scalar> light_radiance_new = illumination<Scalar>(traverser, intersector, u, v, tri, light_ray);
+                        bvh::Vector3<Scalar> light_radiance_new = illumination<Scalar>(traverser, intersector, u, v, tri, light_ray, tex);
                         light_radiance = light_radiance + (light_radiance_new - light_radiance)*Scalar(1.0/count);
                         count++;
                     };
                     for (SquareLight<Scalar> &light : square_lights){
                         bvh::Ray<Scalar> light_ray = light.sample_ray(intersect_point);
-                        bvh::Vector3<Scalar> light_radiance_new = illumination<Scalar>(traverser, intersector, u, v, tri, light_ray);
+                        bvh::Vector3<Scalar> light_radiance_new = illumination<Scalar>(traverser, intersector, u, v, tri, light_ray, tex);
                         light_radiance = light_radiance + (light_radiance_new - light_radiance)*Scalar(1.0/count);
                         count++;
                     };
@@ -122,7 +141,7 @@ void render(int num_samples, int num_bounces, CameraModel<Scalar> &camera, std::
                     }
 
                     //TODO: Move this into a class contained by a parent object to a triangle:
-                    bvh::Ray<Scalar> ray = cosine_importance(intersect_point, -normal, i_rand, j_rand);
+                    bvh::Ray<Scalar> ray = cosine_importance(intersect_point, -normal, i_rand + Scalar(0.5), j_rand + Scalar(0.5));
                     hit = traverser.traverse(ray, intersector);
                 }
 

@@ -19,13 +19,15 @@
 #include "transform.hpp"
 #include "render.hpp"
 #include "obj.hpp"
+#include "ply.hpp"
 #include "lights.hpp"
 #include "scene.hpp"
 
 // Function for loading general settings:
-void load_settings(INIReader reader, bool &use_double, std::string &output, int &num_samples, int &num_bounces) {
+void load_settings(INIReader reader, bool &use_double, std::string &output, std::string &tex, int &num_samples, int &num_bounces) {
     use_double = reader.GetBoolean("settings", "use_double", true);
     output = reader.Get("settings", "output", "render.png");
+    tex = reader.Get("settings", "texture", "");
     num_samples = reader.GetInteger("settings","num_samples",1);
     num_bounces = reader.GetInteger("settings","num_bounces",1);
 };
@@ -206,7 +208,8 @@ std::vector<bvh::Triangle<Scalar>> load_objects(INIReader reader) {
         if (!strcmp((*it).substr(0,3).c_str(), "obj")) {
             // Load the triangular mesh:
             std::string path_to_obj = reader.Get((*it), "path", "UNKNOWN");
-            auto triangles_new = obj::load_from_file<Scalar>(path_to_obj);
+            bool is_ply = path_to_obj.size() > 4 && 0 == path_to_obj.compare(path_to_obj.size() - 4, 4, ".ply");
+            auto triangles_new = is_ply ? ply::load_from_file<Scalar>(path_to_obj) : obj::load_from_file<Scalar>(path_to_obj);
             std::cout << "  " << (*it).substr(4) << " loaded from " << path_to_obj << "\n";
 
             // Load the position:
@@ -296,7 +299,8 @@ int main(int argc, char** argv) {
     int num_bounces;
     bool use_double;
     std::string output;
-    load_settings(reader, use_double, output, num_samples, num_bounces);
+    std::string tex_file;
+    load_settings(reader, use_double, output, tex_file, num_samples, num_bounces);
 
     // Build and render the scene as double precision:
     if (use_double) {
@@ -304,7 +308,7 @@ int main(int argc, char** argv) {
         auto triangles = load_objects<double>(reader);
         auto point_lights = load_pointlights<double>(reader);
         auto square_lights = load_squarelights<double>(reader);
-        scene<double>(num_samples, num_bounces, *camera, triangles, point_lights, square_lights, output);
+        scene<double>(num_samples, num_bounces, *camera, triangles, point_lights, square_lights, output, tex_file);
     
     // Build and render the scene as single precision:
     } else {
@@ -312,7 +316,7 @@ int main(int argc, char** argv) {
         auto triangles = load_objects<float>(reader);
         auto point_lights = load_pointlights<float>(reader);
         auto square_lights = load_squarelights<float>(reader);
-        scene<float>(num_samples, num_bounces, *camera, triangles, point_lights, square_lights, output);
+        scene<float>(num_samples, num_bounces, *camera, triangles, point_lights, square_lights, output, tex_file);
     }
     return 0;
 }

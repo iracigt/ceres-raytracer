@@ -3,7 +3,7 @@
 
 template <typename Scalar>
 void scene(int num_samples, int num_bounces, CameraModel<Scalar> &camera, std::vector<bvh::Triangle<Scalar>> triangles,
-           std::vector<PointLight<Scalar>> &point_lights, std::vector<SquareLight<Scalar>> &square_lights, std::string out_file) {
+           std::vector<PointLight<Scalar>> &point_lights, std::vector<SquareLight<Scalar>> &square_lights, std::string out_file, std::string tex_file = "") {
     using Bvh =  bvh::Bvh<Scalar>;
     using Triangle =  bvh::Triangle<Scalar>;
 
@@ -48,8 +48,13 @@ void scene(int num_samples, int num_bounces, CameraModel<Scalar> &camera, std::v
     std::cout << "Rendering image on single thread..." << std::endl;
 #endif
 
+    Magick::Image tex(Magick::Geometry(1,1), "cyan");
+    if (!tex_file.empty()) {
+        tex.read(tex_file);
+    }
+
     start = high_resolution_clock::now();
-    render(num_samples, num_bounces, camera, point_lights, square_lights, bvh, triangles.data(), pixels.get());
+    render(num_samples, num_bounces, camera, point_lights, square_lights, bvh, triangles.data(), pixels.get(), tex);
     stop = high_resolution_clock::now();
     duration = duration_cast<microseconds>(stop - start);
     std::cout << "    Tracing completed in " << duration.count()/1000000.0 << " seconds\n\n";
