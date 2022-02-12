@@ -33,7 +33,7 @@ class PointLight: public Light<Scalar>  {
 
         Scalar get_intensity() { return intensity; }
         Scalar get_intensity(bvh::Vector3<Scalar> point) { 
-            return std::min(intensity / bvh::dot(point - position, point - position), Scalar(10000));
+            return std::min(intensity / bvh::dot(point - position, point - position), Scalar(1000));
         }
 };
 
@@ -84,7 +84,7 @@ class SquareLight: public Light<Scalar> {
 
         Scalar get_intensity() { return intensity; }
         Scalar get_intensity(bvh::Vector3<Scalar> point) { 
-            return std::min(intensity / bvh::dot(point - position, point - position), Scalar(10000));
+            return std::min(intensity / bvh::dot(point - position, point - position), Scalar(100));
         }
 };
 

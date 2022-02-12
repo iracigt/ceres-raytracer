@@ -89,7 +89,7 @@ void do_render(int max_samples, int min_samples, Scalar noise_threshold, int num
                     auto u = hit->intersection.u;
                     auto v = hit->intersection.v;
 
-                    auto normal = tri.n;
+                    auto normal = bvh::normalize(tri.n);
                     auto interp_normal = tri.parent->interp_normals ? u*tri.vn1 + v*tri.vn2 + (1-u-v)*tri.vn0 : normal;
                     bvh::Vector<float, 2> interp_uv = (float)u*tri.uv[1] + (float)v*tri.uv[2] + (float)(1-u-v)*tri.uv[0];
                     auto material = tri.parent->get_material(interp_uv[0], interp_uv[1]);
@@ -97,7 +97,7 @@ void do_render(int max_samples, int min_samples, Scalar noise_threshold, int num
                     //TODO: Figure out how to deal with the self-intersection stuff in a more proper way...
                     bvh::Vector3<Scalar> intersect_point = (u*tri.p1() + v*tri.p2() + (1-u-v)*tri.p0);
                     Scalar scale = -0.0001;
-                    intersect_point = intersect_point + scale*normal;
+                    intersect_point = intersect_point + scale*interp_normal;
 
                     // Calculate the direct illumination:
                     Color light_radiance(0);
@@ -121,7 +121,7 @@ void do_render(int max_samples, int min_samples, Scalar noise_threshold, int num
                         break;
                     }
 
-                    auto [new_direction, bounce_color] = material->sample(ray, bvh::normalize(tri.n), interp_uv[0], interp_uv[1]);
+                    auto [new_direction, bounce_color] = material->sample(ray, interp_normal, interp_uv[0], interp_uv[1]);
 
                     ray = bvh::Ray<Scalar>(intersect_point, new_direction);
                     hit = traverser.traverse(ray, closest_intersector);
