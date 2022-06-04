@@ -20,8 +20,8 @@
 #include "crt/render.hpp"
 #include "crt/lighting.hpp"
 
-#include "model_loaders/obj.hpp"
-#include "materials/material.hpp"
+#include "crt/model_loaders/obj.hpp"
+#include "crt/materials/material.hpp"
 
 
 // Function for loading general settings:

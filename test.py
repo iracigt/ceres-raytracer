@@ -1,0 +1,12 @@
+import ceres_rt
+red = ceres_rt.Vector3(1.0, 0.0, 0.0)
+cube_pos = ceres_rt.Vector3(0,0,0)
+cam_pos = ceres_rt.Vector3(0,0,3)
+light_pos = ceres_rt.Vector3(0,0,4)
+light = ceres_rt.PointLight(light_pos, 1.0)
+cam = ceres_rt.PinholeCamera(30, (128.0, 128.0), (20.0, 20.0), cam_pos)
+cube = ceres_rt.Entity(red, "../../data/cube.obj")
+scene = ceres_rt.Scene()
+scene.add_entity(cube, 0.4, cube_pos)
+scene.add_light(light)
+scene.render(cam, 'out.png')

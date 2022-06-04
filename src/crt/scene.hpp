@@ -1,6 +1,8 @@
 #ifndef __SCENE_H
 #define __SCENE_H
 
+#include <chrono>
+
 #include "entity.hpp"
 #include "render.hpp"
 
