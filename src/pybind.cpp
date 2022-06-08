@@ -1,8 +1,7 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
-int add(int i, int j) {
-    return i + j;
-}
+#include <lodepng/lodepng.h>
 
 #include "crt/rotations.hpp"
 #include "crt/transform.hpp"
@@ -110,7 +109,23 @@ PYBIND11_MODULE(ceres_rt, m) {
         .def("add_light", &Scene<Scalar>::add_square_light)
         .def("add_entity", &add_entity)
         .def("render", [](Scene<Scalar> &s, PinholeCamera<Scalar> &c, std::string path) {
-            s.render(c, path);
+            auto pixels = s.render(c);
+            size_t width  = (size_t) floor(c.get_resolutionX());
+            size_t height = (size_t) floor(c.get_resolutionY());
+            lodepng::encode(path, pixels, width, height);
+        })
+        .def("render", [](Scene<Scalar> &s, PinholeCamera<Scalar> &c) {
+            auto pixels = s.render(c);
+            int width  = (size_t) floor(c.get_resolutionX());
+            int height = (size_t) floor(c.get_resolutionY());
+            auto result = pybind11::array_t<uint8_t>({height,width,4});
+            
+            auto raw = result.mutable_data();
+            for (int i = 0; i < height*width*4; i++) {
+                raw[i] = pixels[i];
+            }
+
+            return result;
         })
         .def_readwrite("max_samples", &Scene<Scalar>::max_samples)
         .def_readwrite("min_samples", &Scene<Scalar>::min_samples)

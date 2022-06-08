@@ -3,6 +3,8 @@
 
 #include <chrono>
 
+#include <lodepng/lodepng.h>
+
 #include "entity.hpp"
 #include "render.hpp"
 
@@ -81,7 +83,7 @@ class Scene {
             square_lights.push_back(light);
         }
 
-        void render(CameraModel<Scalar> &camera, std::string out_file) {
+        std::vector<uint8_t> render(CameraModel<Scalar> &camera) {
             size_t width  = (size_t) floor(camera.get_resolutionX());
             size_t height = (size_t) floor(camera.get_resolutionY());
 
@@ -117,7 +119,8 @@ class Scene {
                 << reference_count << " reference(s)\n";
             std::cout << "    BVH built in " << duration.count()/1000000.0 << " seconds\n\n";
 
-            auto pixels = std::make_unique<float[]>(3 * width * height);
+            // RGBA
+            auto pixels = std::make_unique<float[]>(4 * width * height);
             
         #ifdef _OPENMP
             #pragma omp parallel
@@ -135,17 +138,25 @@ class Scene {
             duration = duration_cast<microseconds>(stop - start);
             std::cout << "    Tracing completed in " << duration.count()/1000000.0 << " seconds\n\n";
 
-            Magick::Image image(Magick::Geometry(width,height), "green");
-            image.modifyImage();
-            Magick::Pixels view(image);
-            Magick::Quantum *img_pix = view.set(0,0,width,height);
+            std::vector<uint8_t> image;
+            image.reserve(4 * width * height);
 
-            for (size_t j = 0; j < 3 * width*height; j++) {
-                *img_pix++ = std::clamp(pixels[j], 0.f, 1.f) * 65535;
+            for (size_t j = 0; j < 4*width*height; j++) {
+                image.push_back((uint8_t) std::clamp(pixels[j] * 256, 0.0f, 255.0f));
             }
 
-            view.sync();
-            image.write(out_file);
+
+            for(unsigned y = 0; y < height; y++) {
+                for(unsigned x = 0; x < width; x++) {
+                    size_t i = 4 * (width * y + x);
+                    image[4 * width * y + 4 * x + 0] = (uint8_t) std::clamp(pixels[i+0] * 256, 0.0f, 255.0f);
+                    image[4 * width * y + 4 * x + 1] = (uint8_t) std::clamp(pixels[i+1] * 256, 0.0f, 255.0f);
+                    image[4 * width * y + 4 * x + 2] = (uint8_t) std::clamp(pixels[i+2] * 256, 0.0f, 255.0f);
+                    image[4 * width * y + 4 * x + 3] = (uint8_t) std::clamp(pixels[i+3] * 256, 0.0f, 255.0f);
+                }
+            }
+
+            return image;
         }   
 
 };

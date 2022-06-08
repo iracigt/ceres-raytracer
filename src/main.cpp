@@ -6,8 +6,6 @@
 #include <chrono>
 #include <random>
 
-#include <Magick++.h> 
-
 #include "bvh/bvh.hpp"
 #include "INIReader.h"
 
@@ -410,7 +408,14 @@ void render_scene(INIReader &reader)
     scene.noise_threshold = Scalar(noise_threshold);
     scene.num_bounces = num_bounces;
 
-    scene.render(*camera, output);
+    auto pixels = scene.render(*camera);
+
+    size_t width  = (size_t) floor(camera->get_resolutionX());
+    size_t height = (size_t) floor(camera->get_resolutionY());
+    unsigned error = lodepng::encode(output, pixels, width, height);
+    if(error) {
+        std::cout << "PNG error " << error << ": "<< lodepng_error_text(error) << std::endl;
+    }
 }
 
 int main(int argc, char** argv) {

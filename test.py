@@ -1,12 +1,19 @@
 import ceres_rt
-red = ceres_rt.Vector3(1.0, 0.0, 0.0)
+from PIL import Image 
+
+color = ceres_rt.Vector3(0.9, 0.9, 0.9)
+
 cube_pos = ceres_rt.Vector3(0,0,0)
 cam_pos = ceres_rt.Vector3(0,0,3)
 light_pos = ceres_rt.Vector3(0,0,4)
 light = ceres_rt.PointLight(light_pos, 1.0)
-cam = ceres_rt.PinholeCamera(30, (128.0, 128.0), (20.0, 20.0), cam_pos)
-cube = ceres_rt.Entity(red, "../../data/cube.obj")
+cam = ceres_rt.PinholeCamera(30, (1024.0, 1024.0), (20.0, 20.0), cam_pos)
+obj = ceres_rt.Entity(color, "../../Bennu_v20_200k.obj")
+
 scene = ceres_rt.Scene()
-scene.add_entity(cube, 0.4, cube_pos)
+scene.add_entity(obj, 2, cube_pos)
 scene.add_light(light)
-scene.render(cam, 'out.png')
+
+arr = scene.render(cam)
+print(arr.shape)
+Image.fromarray(arr).save('out.png')

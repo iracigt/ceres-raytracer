@@ -5,8 +5,6 @@
 #include <vector>
 #include <random>
 
-#include <Magick++.h>
-
 #include "bvh/bvh.hpp"
 #include "bvh/triangle.hpp"
 #include "bvh/vector.hpp"
